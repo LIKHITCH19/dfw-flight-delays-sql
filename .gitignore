@@ -1,0 +1,6 @@
+data/
+*.csv.gz
+__pycache__/
+.DS_Store
+.venv/
+output/*.err
