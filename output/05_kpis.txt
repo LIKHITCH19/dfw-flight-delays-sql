@@ -1,0 +1,22 @@
+ carrier_group  | scheduled | dep_ontime_pct | arr_ontime_pct | cancel_pct 
+----------------+-----------+----------------+----------------+------------
+ American       |    662662 |           69.9 |           68.9 |       2.54
+ Other carriers |    175920 |           77.3 |           74.5 |       2.29
+(2 rows)
+
+ carrier_code |   carrier_name    | scheduled | dep_ontime_pct 
+--------------+-------------------+-----------+----------------
+ AA           | American Airlines |    441126 |           64.6
+ MQ           | Envoy Air         |    179255 |           81.9
+ OO           | SkyWest Airlines  |     66880 |           78.7
+ OH           | PSA Airlines      |     42281 |           74.1
+ DL           | Delta Air Lines   |     31916 |           79.9
+ F9           | Frontier Airlines |     26691 |           72.6
+ UA           | United Airlines   |     24573 |           79.6
+ NK           | Spirit Air Lines  |     18276 |           73.9
+ AS           | Alaska Airlines   |      6395 |           71.8
+ B6           | JetBlue Airways   |      1070 |           64.0
+ YX           | Republic Airways  |       117 |           71.3
+ 9E           | Endeavor Air      |         2 |            0.0
+(12 rows)
+
