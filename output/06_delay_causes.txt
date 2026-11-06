@@ -1,0 +1,11 @@
+ day_of_week | day_name  | scheduled | dep_ontime_pct 
+-------------+-----------+-----------+----------------
+           1 | Monday    |     97216 |           68.0
+           2 | Tuesday   |     91475 |           74.0
+           3 | Wednesday |     92057 |           72.3
+           4 | Thursday  |     96939 |           70.5
+           5 | Friday    |     96096 |           69.8
+           6 | Saturday  |     90811 |           68.9
+           7 | Sunday    |     98068 |           66.5
+(7 rows)
+
