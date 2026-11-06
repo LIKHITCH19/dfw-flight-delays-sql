@@ -38,5 +38,41 @@ The raw files are not in the repo (about 120 MB). Run the download script to get
 python3 python/download_bts.py     # ~20 min, writes to ~/Downloads/bts_dfw
 ```
 
-Work in progress: Postgres schema and analysis coming next.
+## How it's built
 
+```
+raw   ->  stg   ->  core                ->  mart
+text      typed     fact_flight             analysis tables
+as-is     dedupe    dim_carrier             (one per question)
+          times     dim_airport
+                    dim_date
+```
+
+| file | what it does |
+|---|---|
+| `sql/01_schema.sql` | schemas, tables, keys, carrier lookup |
+| `sql/02_staging.sql` | casts types, builds timestamps (handles `2400` and overnight arrivals), removes duplicates |
+| `sql/03_core.sql` | builds the dims and the fact table, adds on-time flags using the DOT definitions |
+| `tests/data_quality.sql` | 11 checks, e.g. row counts vs the download log, causes add up to the arrival delay, no causes on flights under 15 min late |
+| `sql/04_indexes.sql` | indexes |
+
+The data model is in [docs/data_model.md](docs/data_model.md).
+
+Run it (so far):
+
+```
+createdb flights
+pip install -r requirements.txt
+python3 python/download_bts.py
+psql -d flights -f sql/01_schema.sql
+python3 python/load_postgres.py ~/Downloads/bts_dfw
+psql -d flights -f sql/02_staging.sql
+psql -d flights -f sql/03_core.sql
+psql -d flights -f tests/data_quality.sql
+psql -d flights -f sql/04_indexes.sql
+```
+
+All 11 data quality checks pass. Nothing was lost between raw and core, and there were 0
+duplicate flights.
+
+Analysis queries are next.
