@@ -60,6 +60,7 @@ as-is     dedupe    dim_carrier             (one per question)
 | `sql/07_routes.sql` | route scorecard, month over month and year over year, rolling 30-day on-time |
 | `sql/08_knock_on.sql` | tail-number delay chains (the main one, see below) |
 | `sql/09_turns.sql` | scheduled turn time vs how much delay gets passed on, plus a padding what-if |
+| `sql/11_chronic_delays.sql` | DOT chronically delayed flight test by flight and month, plus streaks |
 
 The data model is in [docs/data_model.md](docs/data_model.md).
 
@@ -80,6 +81,7 @@ psql -d flights -f sql/06_delay_causes.sql
 psql -d flights -f sql/07_routes.sql
 psql -d flights -f sql/08_knock_on.sql
 psql -d flights -f sql/09_turns.sql
+psql -d flights -f sql/11_chronic_delays.sql
 ```
 
 All 11 data quality checks pass. Nothing was lost between raw and core, and there were 0
@@ -187,3 +189,25 @@ is expensive.
 Where it's worth it depends on the hour. Padding the 6pm to 10pm departures returns about
 0.3 delay minutes per ground minute, 4x what it does in the morning. That window is 27% of the added ground time and 41% of the
 delay saved.
+
+### 6. Chronically delayed flights
+
+DOT has a rule for this ([14 CFR 399.81](https://www.ecfr.gov/current/title-14/section-399.81)).
+A flight that runs at least 10 times in a month and arrives more than 30 minutes late (or is
+cancelled) more than half the time is "chronically delayed". Keeping one on the schedule for
+more than four months in a row counts as an unfair and deceptive practice. In 2024 and 2025
+DOT fined or sued airlines over this.
+
+Running that test on every American flight number in or out of DFW, month by month
+(`11_chronic_delays.sql`):
+
+- 1,549 flight-months met the definition, covering 992 different flights.
+- The worst month was **May 2024: 288 chronically delayed flights**, 20% of everything eligible.
+  Summer is the problem every year (Jun-Jul 2025 and Jun-Jul 2026 are next).
+- Nobody crossed the legal line. The longest streak is exactly 4 months. That happened 6
+  times (5 different flights), all May through August, and 4 of the 6 were DFW-DEN
+  (AA662 did it in both 2024 and 2025).
+  So American seems to fix or re-time these just in time, or the season ends first. Either
+  way, DFW-DEN in summer is the route to watch.
+- Chronic flights out of DFW are almost all afternoon and evening departures. 19:00 alone
+  has 209 flight-months, versus 1 at 9am. That's the same evening bank as finding 5.
