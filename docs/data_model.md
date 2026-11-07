@@ -76,3 +76,11 @@ One row in `fact_flight` = one scheduled flight. Natural key is
   which wrap around midnight.
 - **Delay causes** are only filled when `arr_delay >= 15`, and they add up to `arr_delay`
   (tested).
+
+## mart tables used by the knock-on analysis
+
+| table | grain | key columns |
+|---|---|---|
+| `aircraft_legs` | one row per non-cancelled American flight | `prev_flight_id` (previous flight on the same tail), `sched_turn_min`, `actual_turn_min`, `link_ok`, `likely_swap` |
+| `chain_legs` | same, plus `inherits` and `chain_no` (gaps-and-islands id per tail) | |
+| `delay_chains` | one row per chain of 2+ flights | root flight, `root_cause`, `legs_hit`, `inherited_min`, `dfw_inherited_min` |

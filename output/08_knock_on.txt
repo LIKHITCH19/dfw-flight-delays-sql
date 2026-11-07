@@ -1,0 +1,50 @@
+  legs   | first_leg_for_tail | linked_to_prev | linked_pct 
+---------+--------------------+----------------+------------
+ 3970827 |               1403 |        2987253 |       75.2
+(1 row)
+
+           where_it_started            | dfw_inherited_min | pct  
+---------------------------------------+-------------------+------
+ Root was the flight into DFW          |           1541514 | 60.0
+ Root left DFW earlier, came back late |            880747 | 34.3
+ Root was 2+ legs back                 |            147166 |  5.7
+(3 rows)
+
+          root_cause          | dfw_inherited_min | pct  
+------------------------------+-------------------+------
+ Aircraft swap                |           2353750 | 43.1
+ Carrier                      |           1015353 | 18.6
+ NAS                          |            920228 | 16.8
+ Tight turn (inbound on time) |            541078 |  9.9
+ Weather                      |            385913 |  7.1
+ Unlinked late aircraft       |            242483 |  4.4
+ Security                     |              5450 |  0.1
+(7 rows)
+
+ legs_hit_capped | chains | pct  
+-----------------+--------+------
+               1 | 166222 | 54.8
+               2 |  82316 | 27.1
+               3 |  35422 | 11.7
+               4 |  12893 |  4.2
+               5 |   5178 |  1.7
+               6 |   1393 |  0.5
+(6 rows)
+
+ step | tail_number | flight |  route  |      sched_dep      | dep_delay | arr_delay | late_aircraft_delay | sched_turn_min 
+------+-------------+--------+---------+---------------------+-----------+-----------+---------------------+----------------
+    0 | N786SM      | MQ3314 | HOU-DFW | 2024-06-05 06:00:00 |        34 |       103 |                   0 |            365
+    1 | N786SM      | MQ3909 | DFW-FWA | 2024-06-05 08:15:00 |        95 |        76 |                  75 |             49
+    2 | N786SM      | MQ3909 | FWA-DFW | 2024-06-05 12:22:00 |        77 |       105 |                  76 |             30
+    3 | N786SM      | MQ3455 | DFW-GRK | 2024-06-05 15:29:00 |        64 |        79 |                  55 |             90
+    4 | N786SM      | MQ3455 | GRK-DFW | 2024-06-05 16:48:00 |       100 |       107 |                  79 |             30
+    5 | N786SM      | MQ3453 | DFW-FSM | 2024-06-05 18:50:00 |        87 |       113 |                  87 |             60
+    6 | N786SM      | MQ3453 | FSM-DFW | 2024-06-05 20:28:00 |       107 |        95 |                  95 |             30
+    7 | N786SM      | MQ3510 | DFW-GCK | 2024-06-05 21:50:00 |       122 |       116 |                 116 |              5
+(8 rows)
+
+ legs_hit_recursive | legs_hit_islands 
+--------------------+------------------
+              20177 |            20177
+(1 row)
+
