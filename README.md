@@ -59,6 +59,7 @@ as-is     dedupe    dim_carrier             (one per question)
 | `sql/06_delay_causes.sql` | cause mix, hour of day, day of week |
 | `sql/07_routes.sql` | route scorecard, month over month and year over year, rolling 30-day on-time |
 | `sql/08_knock_on.sql` | tail-number delay chains (the main one, see below) |
+| `sql/09_turns.sql` | scheduled turn time vs how much delay gets passed on, plus a padding what-if |
 
 The data model is in [docs/data_model.md](docs/data_model.md).
 
@@ -78,6 +79,7 @@ psql -d flights -f sql/05_kpis.sql
 psql -d flights -f sql/06_delay_causes.sql
 psql -d flights -f sql/07_routes.sql
 psql -d flights -f sql/08_knock_on.sql
+psql -d flights -f sql/09_turns.sql
 ```
 
 All 11 data quality checks pass. Nothing was lost between raw and core, and there were 0
@@ -161,4 +163,27 @@ Looking at every chain that reached a DFW departure, by what the root flight's o
 coded as: swaps 43%, carrier 19%, NAS 17%, tight turn 10%, weather 7%, and 4% where the
 root was itself late from a flight I couldn't link.
 
-Next: how scheduled turn times decide whether a late inbound turns into a late departure.
+### 5. Short turns pass the delay straight through
+
+For every late inbound at DFW (15+ min), how often the next departure on that plane also
+left 15+ late:
+
+| scheduled turn (min) | 15-39 | 40-49 | 50-59 | 60-74 | 75-89 | 90-119 | 120+ |
+|---|---|---|---|---|---|---|---|
+| mainline | 100% | 99.5% | 91.9% | 77.3% | 59.9% | 50.1% | 45.9% |
+| regional | 97.8% | 75.7% | 59.3% | 46.3% | 39.2% | 35.2% | 37.9% |
+
+For mainline, turns under 60 minutes pass on more than 90% of inbound delay, and the
+outbound usually ends up *later* than the inbound was. It takes 90+ minutes before it's a
+coin flip. Regional jets turn faster: the practical minimum (10th percentile of actual
+turns when the inbound was 30+ late) is 34 min regional vs 50 min mainline.
+
+**What-if:** pad every turn with less than 15 minutes of buffer up to 15 minutes. That touches
+41% of mainline turns, adds 1.5M minutes of ground time over the period, and saves about
+350k minutes of late-aircraft delay. That's roughly 18% of the mainline late-aircraft minutes
+in that turn set, but only 0.23 delay minutes saved per minute added. Padding everything
+is expensive.
+
+Where it's worth it depends on the hour. Padding the 6pm to 10pm departures returns about
+0.3 delay minutes per ground minute, 4x what it does in the morning. That window is 27% of the added ground time and 41% of the
+delay saved.
