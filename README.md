@@ -58,6 +58,7 @@ as-is     dedupe    dim_carrier             (one per question)
 | `sql/05_kpis.sql` | DFW monthly, hub ranking, national benchmark |
 | `sql/06_delay_causes.sql` | cause mix, hour of day, day of week |
 | `sql/07_routes.sql` | route scorecard, month over month and year over year, rolling 30-day on-time |
+| `sql/08_knock_on.sql` | tail-number delay chains (the main one, see below) |
 
 The data model is in [docs/data_model.md](docs/data_model.md).
 
@@ -76,6 +77,7 @@ psql -d flights -f sql/04_indexes.sql
 psql -d flights -f sql/05_kpis.sql
 psql -d flights -f sql/06_delay_causes.sql
 psql -d flights -f sql/07_routes.sql
+psql -d flights -f sql/08_knock_on.sql
 ```
 
 All 11 data quality checks pass. Nothing was lost between raw and core, and there were 0
@@ -116,4 +118,47 @@ of total delay minutes, and the top 15 together are 27%. No single route explain
 route-by-route fixes won't move the hub number. Late aircraft is the top cause on every one
 of the top 15 routes. (Full table: `mart.route_scorecard`.)
 
-Next: following delays from plane to plane by tail number.
+### 4. Tracing late-aircraft delay back to where it started
+
+This is the main part of the project. Every flight has a tail number, so in
+`08_knock_on.sql` I rebuilt the sequence of flights for each of 1,403 American aircraft
+(`LAG()` over tail number ordered by actual departure), checked that each flight really
+connects to the one before it (same airport, under 6 hours on the ground), and then used
+a gaps-and-islands running sum to group consecutive late-aircraft flights into **chains**.
+The first flight in a chain is the root.
+
+To make sure the chain logic was right, I also walked the chains forward with a recursive
+CTE. Both methods give the same count (20,177 legs for the last month checked).
+
+Here's one chain the recursive query pulls out, Envoy N786SM on June 5, 2024. One late
+morning arrival and the plane never caught up:
+
+| step | flight | route | dep delay | late aircraft min |
+|---|---|---|---|---|
+| 0 | MQ3314 | HOU-DFW | 34 | 0 (root, arrived 103 late) |
+| 1 | MQ3909 | DFW-FWA | 95 | 75 |
+| 2 | MQ3909 | FWA-DFW | 77 | 76 |
+| 3 | MQ3455 | DFW-GRK | 64 | 55 |
+| 4 | MQ3455 | GRK-DFW | 100 | 79 |
+| 5 | MQ3453 | DFW-FSM | 87 | 87 |
+| 6 | MQ3453 | FSM-DFW | 107 | 95 |
+| 7 | MQ3510 | DFW-GCK | 122 | 116 |
+
+Across all late-aircraft minutes on American's DFW departures:
+
+- **38%** trace back to an earlier flight on the same plane that really was late. For those,
+  60% of the time the root was the flight into DFW, 34% it was the plane's previous trip out
+  of DFW coming back late, and 6% it started 2+ flights back.
+- **35% are aircraft swaps.** The plane that flew the departure landed on time, but it was
+  scheduled to arrive after (or just minutes before) the departure, so it was never planned
+  for that flight. Usually the scheduled "turn" is negative. The airline still codes the
+  delay as late aircraft, because the plane that was supposed to fly it was late, but that
+  plane is a different tail, so it can't be traced. I didn't expect this group to be so big.
+- 8%: the plane landed on time and the turn itself ran long.
+- 19% couldn't be linked (overnight sits, diversions).
+
+Looking at every chain that reached a DFW departure, by what the root flight's own delay was
+coded as: swaps 43%, carrier 19%, NAS 17%, tight turn 10%, weather 7%, and 4% where the
+root was itself late from a flight I couldn't link.
+
+Next: how scheduled turn times decide whether a late inbound turns into a late departure.
