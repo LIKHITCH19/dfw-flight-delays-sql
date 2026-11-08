@@ -1,0 +1,104 @@
+Time: 25.089 ms
+Time: 22.145 ms
+Time: 76.800 ms
+Time: 19.894 ms
+Time: 359.139 ms
+Time: 316.823 ms
+                                                                       QUERY PLAN                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate (actual time=70.291..70.655 rows=92 loops=1)
+   Group Key: flight_date
+   Buffers: shared hit=10746 read=101
+   ->  Sort (actual time=70.216..70.352 rows=1871 loops=1)
+         Sort Key: flight_date
+         Sort Method: quicksort  Memory: 107kB
+         Buffers: shared hit=10746 read=101
+         ->  Bitmap Heap Scan on fact_flight f (actual time=40.595..69.829 rows=1871 loops=1)
+               Recheck Cond: ((flight_date >= '2025-06-01'::date) AND (flight_date <= '2025-08-31'::date) AND (origin = 'DFW'::text))
+               Filter: (dest = 'ORD'::text)
+               Rows Removed by Filter: 82403
+               Heap Blocks: exact=8038
+               Buffers: shared hit=10746 read=101
+               ->  Bitmap Index Scan on fact_flight_flight_date_carrier_code_flight_number_origin_s_key (actual time=29.952..29.953 rows=84274 loops=1)
+                     Index Cond: ((flight_date >= '2025-06-01'::date) AND (flight_date <= '2025-08-31'::date) AND (origin = 'DFW'::text))
+                     Buffers: shared hit=2708 read=101
+ Planning:
+   Buffers: shared hit=33
+ Planning Time: 0.220 ms
+ Execution Time: 71.343 ms
+(20 rows)
+
+Time: 72.481 ms
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Gather Merge (actual time=227.676..241.990 rows=4095 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=83516
+   ->  Sort (actual time=203.059..203.117 rows=1365 loops=3)
+         Sort Key: sched_dep
+         Sort Method: quicksort  Memory: 139kB
+         Buffers: shared hit=83516
+         Worker 0:  Sort Method: quicksort  Memory: 132kB
+         Worker 1:  Sort Method: quicksort  Memory: 74kB
+         ->  Parallel Seq Scan on fact_flight f (actual time=10.353..202.496 rows=1365 loops=3)
+               Filter: ((NOT cancelled) AND (tail_number = 'N778XF'::text))
+               Rows Removed by Filter: 1469973
+               Buffers: shared hit=83404
+ Planning:
+   Buffers: shared hit=27
+ Planning Time: 0.216 ms
+ Execution Time: 242.812 ms
+(18 rows)
+
+Time: 243.776 ms
+Time: 3939.107 ms (00:03.939)
+Time: 3868.374 ms (00:03.868)
+Time: 6408.461 ms (00:06.408)
+Time: 2633.233 ms (00:02.633)
+Time: 301.390 ms
+                                                               QUERY PLAN                                                               
+----------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate (actual time=18.785..19.047 rows=92 loops=1)
+   Group Key: flight_date
+   Buffers: shared hit=6919 read=31
+   ->  Sort (actual time=18.769..18.849 rows=1871 loops=1)
+         Sort Key: flight_date
+         Sort Method: quicksort  Memory: 107kB
+         Buffers: shared hit=6919 read=31
+         ->  Bitmap Heap Scan on fact_flight f (actual time=1.964..18.329 rows=1871 loops=1)
+               Recheck Cond: ((dest = 'ORD'::text) AND (flight_date >= '2025-06-01'::date) AND (flight_date <= '2025-08-31'::date))
+               Filter: (origin = 'DFW'::text)
+               Rows Removed by Filter: 29930
+               Heap Blocks: exact=6919
+               Buffers: shared hit=6919 read=31
+               ->  Bitmap Index Scan on ix_fact_dest_date (actual time=1.016..1.017 rows=31801 loops=1)
+                     Index Cond: ((dest = 'ORD'::text) AND (flight_date >= '2025-06-01'::date) AND (flight_date <= '2025-08-31'::date))
+                     Buffers: shared read=31
+ Planning:
+   Buffers: shared hit=66 read=4
+ Planning Time: 0.386 ms
+ Execution Time: 19.089 ms
+(20 rows)
+
+Time: 20.100 ms
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Sort (actual time=7.808..7.989 rows=4095 loops=1)
+   Sort Key: sched_dep
+   Sort Method: quicksort  Memory: 320kB
+   Buffers: shared hit=4085 read=19
+   ->  Bitmap Heap Scan on fact_flight f (actual time=1.002..7.217 rows=4095 loops=1)
+         Recheck Cond: ((tail_number = 'N778XF'::text) AND (NOT cancelled))
+         Heap Blocks: exact=4085
+         Buffers: shared hit=4085 read=19
+         ->  Bitmap Index Scan on ix_fact_tail_dep (actual time=0.461..0.462 rows=4095 loops=1)
+               Index Cond: (tail_number = 'N778XF'::text)
+               Buffers: shared read=19
+ Planning:
+   Buffers: shared hit=25
+ Planning Time: 0.148 ms
+ Execution Time: 8.166 ms
+(15 rows)
+
+Time: 8.739 ms

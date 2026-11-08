@@ -60,28 +60,18 @@ as-is     dedupe    dim_carrier             (one per question)
 | `sql/07_routes.sql` | route scorecard, month over month and year over year, rolling 30-day on-time |
 | `sql/08_knock_on.sql` | tail-number delay chains (the main one, see below) |
 | `sql/09_turns.sql` | scheduled turn time vs how much delay gets passed on, plus a padding what-if |
+| `sql/10_performance.sql` | EXPLAIN ANALYZE with and without the indexes |
 | `sql/11_chronic_delays.sql` | DOT chronically delayed flight test by flight and month, plus streaks |
 
 The data model is in [docs/data_model.md](docs/data_model.md).
 
-Run it (so far):
+Run it:
 
 ```
 createdb flights
 pip install -r requirements.txt
-python3 python/download_bts.py
-psql -d flights -f sql/01_schema.sql
-python3 python/load_postgres.py ~/Downloads/bts_dfw
-psql -d flights -f sql/02_staging.sql
-psql -d flights -f sql/03_core.sql
-psql -d flights -f tests/data_quality.sql
-psql -d flights -f sql/04_indexes.sql
-psql -d flights -f sql/05_kpis.sql
-psql -d flights -f sql/06_delay_causes.sql
-psql -d flights -f sql/07_routes.sql
-psql -d flights -f sql/08_knock_on.sql
-psql -d flights -f sql/09_turns.sql
-psql -d flights -f sql/11_chronic_delays.sql
+python3 python/download_bts.py          # ~20 min, writes to ~/Downloads/bts_dfw
+./run_all.sh ~/Downloads/bts_dfw
 ```
 
 All 11 data quality checks pass. Nothing was lost between raw and core, and there were 0
@@ -211,3 +201,17 @@ Running that test on every American flight number in or out of DFW, month by mon
   way, DFW-DEN in summer is the route to watch.
 - Chronic flights out of DFW are almost all afternoon and evening departures. 19:00 alone
   has 209 flight-months, versus 1 at 9am. That's the same evening bank as finding 5.
+
+## Performance note
+
+The knock-on analysis leans on looking up a plane's flights in order. On 4.4M rows
+(`10_performance.sql`, local Postgres 16):
+
+| query | no index | with index |
+|---|---|---|
+| one route, one quarter (DFW-ORD, summer 2025) | ~60 ms | ~17 ms |
+| one aircraft's full history in order | ~245 ms | ~9 ms |
+
+(numbers move around a bit between runs, these are typical)
+
+The full pipeline (`run_all.sh`, load to final tables) runs in about 5 minutes.
