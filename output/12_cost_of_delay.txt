@@ -1,0 +1,31 @@
+         name          | value |  unit  |                     source                      
+-----------------------+-------+--------+-------------------------------------------------
+ cost_per_block_minute | 98.41 | USD    | A4A, U.S. passenger carrier delay costs, 2025
+ evening_first_hour    |    18 | hour   | evening bank = scheduled departures 18:00-22:59
+ months_in_data        |    32 | months | filled below from the data
+(3 rows)
+
+         cause          | minutes | cost_musd 
+------------------------+---------+-----------
+ All delay              | 5145034 |     506.3
+ Late-arriving aircraft | 2484789 |     244.5
+ Air carrier            | 1519417 |     149.5
+ NAS                    |  738651 |      72.7
+ Extreme weather        |  396974 |      39.1
+(5 rows)
+
+             bucket              | late_aircraft_min | min_per_year | cost_musd_per_year 
+---------------------------------+-------------------+--------------+--------------------
+ Traced to a late earlier flight |           2570526 |       963947 |               94.9
+ Aircraft swap                   |           2353750 |       882656 |               86.9
+ Untraced                        |           1299477 |       487304 |               48.0
+ Tight turn, inbound on time     |            541078 |       202904 |               20.0
+(4 rows)
+
+              scope              | delay_min_avoided_per_year | delay_cost_avoided_musd_per_year | aircraft_hours_added_per_day | delay_min_avoided_per_ground_min 
+---------------------------------+----------------------------+----------------------------------+------------------------------+----------------------------------
+ All tight turns                 |                     149056 |                            14.67 |                         32.2 |                             0.21
+ Rest of the day                 |                      87146 |                             8.58 |                         23.4 |                             0.17
+ Evening bank only (18:00-22:59) |                      61910 |                             6.09 |                          8.8 |                             0.32
+(3 rows)
+

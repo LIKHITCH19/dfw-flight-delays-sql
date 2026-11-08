@@ -62,8 +62,10 @@ as-is     dedupe    dim_carrier             (one per question)
 | `sql/09_turns.sql` | scheduled turn time vs how much delay gets passed on, plus a padding what-if |
 | `sql/10_performance.sql` | EXPLAIN ANALYZE with and without the indexes |
 | `sql/11_chronic_delays.sql` | DOT chronically delayed flight test by flight and month, plus streaks |
+| `sql/12_cost_of_delay.sql` | puts a dollar figure on the findings, with the assumptions kept in a table |
 
-The data model is in [docs/data_model.md](docs/data_model.md).
+The data model is in [docs/data_model.md](docs/data_model.md), and how each metric is defined
+is in [docs/metric_definitions.md](docs/metric_definitions.md).
 
 Run it:
 
@@ -201,6 +203,23 @@ Running that test on every American flight number in or out of DFW, month by mon
   way, DFW-DEN in summer is the route to watch.
 - Chronic flights out of DFW are almost all afternoon and evening departures. 19:00 alone
   has 209 flight-months, versus 1 at 9am. That's the same evening bank as finding 5.
+
+### 7. Rough cost
+
+Using Airlines for America's 2025 figure of **$98.41 per block minute** (direct airline cost:
+crew, fuel, maintenance, ownership; [A4A](https://www.airlines.org/dataset/u-s-passenger-carrier-delay-costs/)),
+kept in a `mart.assumptions` table so it's easy to change:
+
+| | per year |
+|---|---|
+| all delay on American's DFW departures (2025) | 5.1M min, about **$506M** |
+| late-arriving aircraft part of that | about $245M |
+| aircraft swaps (from finding 4) | about $87M |
+| padding only the evening bank's tight turns | saves about **$6.1M** for ~9 aircraft-hours a day of extra ground time |
+
+These are order-of-magnitude numbers. They leave out passengers' time, missed connections
+and rebooking, so the real cost of delay is higher. On the other side, not every delay minute
+burns a full block minute of cost.
 
 ## Performance note
 

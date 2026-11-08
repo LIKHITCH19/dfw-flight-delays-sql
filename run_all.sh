@@ -21,7 +21,7 @@ $PSQL -f sql/04_indexes.sql
 
 for f in sql/05_kpis.sql sql/06_delay_causes.sql sql/07_routes.sql \
          sql/08_knock_on.sql sql/09_turns.sql \
-         sql/11_chronic_delays.sql; do
+         sql/11_chronic_delays.sql sql/12_cost_of_delay.sql; do
     echo "== $f"
     $PSQL -f "$f" > "output/$(basename "$f" .sql).txt"
 done
