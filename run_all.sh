@@ -29,4 +29,6 @@ done
 echo "== sql/10_performance.sql"
 $PSQL -f sql/10_performance.sql > output/10_performance.txt
 
+python3 python/make_charts.py
+python3 python/export_tableau.py
 echo "done"

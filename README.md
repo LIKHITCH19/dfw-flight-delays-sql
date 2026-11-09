@@ -32,11 +32,7 @@ National Aviation System, security, late aircraft).
 - It also writes national totals by carrier and month so there's an industry benchmark
   without keeping all 18.8M rows.
 
-The raw files are not in the repo (about 120 MB). Run the download script to get them:
-
-```
-python3 python/download_bts.py     # ~20 min, writes to ~/Downloads/bts_dfw
-```
+The raw files are not in the repo (about 120 MB). Run the download script to get them.
 
 ## How it's built
 
@@ -96,12 +92,18 @@ DFW also runs behind the other airlines at the same airport: 69.9% on-time for A
 77.3% for everyone else, with the same weather and the same air traffic control. Inside
 American, mainline is the problem: **AA mainline 64.6%**, PSA 74.1%, Envoy 81.9%.
 
+![monthly](charts/01_dfw_monthly_ontime.png)
+
 Summer is the worst every year (May to Aug), which fits Texas thunderstorm season.
 
 ### 2. Half the delay is planes showing up late, and it builds through the day
 
+![causes](charts/02_delay_cause_mix.png)
+
 Late-arriving aircraft is 49.7% of delay minutes on American's DFW departures. Weather
 (the "extreme weather" category) is only 7.6%, though BTS counts normal weather under NAS.
+
+![by hour](charts/03_by_hour.png)
 
 Departures before 8am leave on time about 84% of the time. By 6 to 8pm it's around 60%,
 and over half the delay at that point is inherited from earlier flights. That's the
@@ -142,6 +144,8 @@ morning arrival and the plane never caught up:
 
 Across all late-aircraft minutes on American's DFW departures:
 
+![knock-on](charts/05_knock_on_buckets.png)
+
 - **38%** trace back to an earlier flight on the same plane that really was late. For those,
   60% of the time the root was the flight into DFW, 34% it was the plane's previous trip out
   of DFW coming back late, and 6% it started 2+ flights back.
@@ -167,6 +171,8 @@ left 15+ late:
 | mainline | 100% | 99.5% | 91.9% | 77.3% | 59.9% | 50.1% | 45.9% |
 | regional | 97.8% | 75.7% | 59.3% | 46.3% | 39.2% | 35.2% | 37.9% |
 
+![turns](charts/04_turn_passthrough.png)
+
 For mainline, turns under 60 minutes pass on more than 90% of inbound delay, and the
 outbound usually ends up *later* than the inbound was. It takes 90+ minutes before it's a
 coin flip. Regional jets turn faster: the practical minimum (10th percentile of actual
@@ -178,8 +184,12 @@ turns when the inbound was 30+ late) is 34 min regional vs 50 min mainline.
 in that turn set, but only 0.23 delay minutes saved per minute added. Padding everything
 is expensive.
 
-Where it's worth it depends on the hour. Padding the 6pm to 10pm departures returns about
-0.3 delay minutes per ground minute, 4x what it does in the morning. That window is 27% of the added ground time and 41% of the
+Where it's worth it depends on the hour:
+
+![pad payoff](charts/06_pad_payoff_by_hour.png)
+
+Padding the 6pm to 10pm departures returns about 0.3 delay minutes per ground minute,
+4x what it does in the morning. That window is 27% of the added ground time and 41% of the
 delay saved.
 
 ### 6. Chronically delayed flights
@@ -221,6 +231,47 @@ These are order-of-magnitude numbers. They leave out passengers' time, missed co
 and rebooking, so the real cost of delay is higher. On the other side, not every delay minute
 burns a full block minute of cost.
 
+### Dashboard
+
+The main charts are also in a Tableau dashboard built from `tableau/dashboard_data.csv`
+(one long file, each sheet filters on the `chart` column). Link: to be added once it's
+published on Tableau Public.
+
+## What I'd recommend
+
+1. **Fix the evening bank first.** Add buffer to tight mainline turns on 6pm to 10pm departures.
+   That's where the delay has piled up, where the chronically delayed flights are, and where
+   each padded minute saves the most (about $6M a year for less than one plane's worth of
+   daily flying). Don't pad mornings: flights are mostly on time then and padding barely helps.
+2. **Treat 60 minutes as the floor for mainline turns at DFW.** Below that, almost all inbound
+   delay goes straight through.
+3. **Look at swap decisions.** About a third of inherited delay at DFW comes from planes
+   that were swapped in and were already scheduled to arrive late. The data can't show why
+   each swap happened, but at roughly $87M a year it's big enough for someone in ops
+   control to dig into (spare aircraft at DFW, swap rules).
+4. **Watch summer DFW-DEN.** Several flights there are chronically delayed for 4 straight
+   months, one short of the DOT line. Re-time them before May, not after.
+5. **Otherwise, don't go route by route.** The delay is spread across the whole hub, so the fix has to be
+   in the schedule structure (banks and turns), not in individual routes.
+
+## Limitations
+
+- Delay causes are reported by the airlines and only for flights 15+ minutes late. How a
+  minute gets coded as "carrier" vs "NAS" is partly a judgment call by each airline.
+- All times are local. Linking flights only compares times at the same airport so that's fine,
+  but ordering a plane's day across time zones relies on actual departure times plus the
+  airport check.
+- SkyWest and Republic also fly some American Eagle routes, but BTS lists flights under the
+  operating airline, so those are counted under "other carriers" at DFW and not followed
+  in the chains.
+- The padding what-if is rough: one buffer minute absorbs one minute of delay, and there's
+  no cost for gates, crews or fewer flights per plane per day.
+- Not every turn can be padded. Connections and crew rules aren't in this data.
+- The dollar figures use one industry-average cost per minute for all aircraft types. A
+  regional jet minute costs less than a widebody minute.
+- The chronic delay test uses the operating carrier's flight number. DOT applies the rule
+  to whoever markets the flight, which for Envoy and PSA is American anyway.
+
 ## Performance note
 
 The knock-on analysis leans on looking up a plane's flights in order. On 4.4M rows
@@ -234,3 +285,15 @@ The knock-on analysis leans on looking up a plane's flights in order. On 4.4M ro
 (numbers move around a bit between runs, these are typical)
 
 The full pipeline (`run_all.sh`, load to final tables) runs in about 5 minutes.
+
+## Repo layout
+
+```
+python/    download_bts.py, load_postgres.py, make_charts.py, export_tableau.py
+sql/       01-12, run in order (run_all.sh does it)
+tests/     data_quality.sql
+charts/    README charts
+docs/      data model, metric definitions
+output/    text output from each analysis file
+tableau/   CSVs the Tableau dashboard is built from (python/export_tableau.py)
+```
